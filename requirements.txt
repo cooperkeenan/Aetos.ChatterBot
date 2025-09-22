@@ -1,0 +1,12 @@
+# Web automation
+selenium==4.16.0
+requests==2.32.3
+
+# Configuration
+python-dotenv==1.1.0
+PyYAML==6.0.1
+
+# Core dependencies
+certifi==2025.1.31
+charset-normalizer==3.4.1
+urllib3==2.4.0

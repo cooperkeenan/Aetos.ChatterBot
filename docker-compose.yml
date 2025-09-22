@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  facebook-messenger:
+    build: .
+    container_name: facebook-messenger
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - cookies:/app/cookies        # Persistent cookies
+      - logs:/app/logs             # Logs and screenshots
+      - ./config:/app/config:ro    # Config file (read-only)
+    command: python src/main.py
+    
+  # Test mode - run navigation test
+  messenger-test:
+    build: .
+    container_name: facebook-messenger-test
+    env_file: .env
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - test-cookies:/app/cookies
+      - logs:/app/logs
+      - ./config:/app/config:ro
+    profiles:
+      - test
+    command: python test_navigation.py
+
+volumes:
+  cookies:
+    name: facebook-messenger-cookies
+  test-cookies:
+    name: facebook-messenger-test-cookies
+  logs:
+    name: facebook-messenger-logs
+
+# Usage:
+# Production:  docker-compose up facebook-messenger
+# Test:        docker-compose --profile test up messenger-test
