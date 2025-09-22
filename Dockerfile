@@ -13,7 +13,7 @@ RUN wget -qO /tmp/google-chrome.deb \
     dpkg -i /tmp/google-chrome.deb || apt-get update && apt-get -f install -y && \
     rm /tmp/google-chrome.deb
 
-# Install ChromeDriver
+# Install ChromeDriver (matching scraper version)
 RUN CHROMEDRIVER_VERSION="137.0.7151.103" && \
     wget -O /tmp/chromedriver.zip \
     "https://storage.googleapis.com/chrome-for-testing-public/$CHROMEDRIVER_VERSION/linux64/chromedriver-linux64.zip" && \

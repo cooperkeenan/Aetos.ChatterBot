@@ -4,7 +4,7 @@
 browser:
   headless: true
   window_size: "1920,1080"
-  user_agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+  user_agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.7151.103 Safari/537.36"
   page_load_timeout: 30
   implicit_wait: 10
   enable_stealth: true
@@ -25,11 +25,11 @@ facebook:
 # Messaging Configuration
 messaging:
   max_messages_per_hour: 5
-  delay_between_messages: 300  # 5 minutes
+  delay_between_messages: 100  # 5 minutes
   templates:
-    - "Hi! Is your {camera_name} still available?"
-    - "Hello! I'm interested in the {camera_name}. Could you tell me more about its condition?"
-    - "Hi there! What's the condition of your {camera_name}?"
+    - "Hi! Is this camera still available?"
+    - "Hi, I'm interested in this camera. Would you be able to post it to edinburgh?"
+    - "Hi I'm really interested in this camera.  Would you be able to post it to edinburgh if I paid extra for postage?"
 
 # Paths
 paths:
