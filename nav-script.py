@@ -19,7 +19,7 @@ def test_navigation():
     """Test navigation with proxy and stealth"""
     
     # Hardcoded test link - replace with actual listing
-    TEST_LINK = "https://www.facebook.com/marketplace/item/123456789"
+    TEST_LINK = "https://www.facebook.com/marketplace/item/1234150477463732470856789"
     
     print("🧪 Testing Facebook Messenger Navigation (Stealth + Proxy)")
     print("="*60)
