@@ -141,8 +141,8 @@ class BrowserService:
         options.add_argument("--disable-features=TranslateUI")
         options.add_argument("--disable-ipc-flooding-protection")
         
-        # User agent
-        options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
+        # User agent (matching scraper exactly)
+        options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.7151.103 Safari/537.36")
         
         # Experimental options for stealth
         options.add_experimental_option("excludeSwitches", ["enable-automation"])
