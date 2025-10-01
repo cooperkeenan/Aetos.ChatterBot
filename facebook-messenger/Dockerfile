@@ -33,6 +33,7 @@ COPY config/ ./config/
 
 # Copy source code
 COPY src/ ./src/
+COPY test_navigation.py ./
 
 # Create required directories
 RUN mkdir -p /app/logs /app/screenshots /app/cookies
