@@ -11,6 +11,8 @@ from typing import Optional
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.ui import WebDriverWait
+
 
 from ..core.config_service import ConfigService
 from .proxy_service import ProxyService
@@ -233,6 +235,10 @@ class BrowserService:
                 print("[Browser] ✅ Browser closed")
             except Exception as e:
                 print(f"[Browser] Error closing: {e}")
+    
+    def wait(self, timeout: int = 10):
+        """Get WebDriverWait instance"""
+        return WebDriverWait(self.get_driver(), timeout)
     
     def __enter__(self):
         return self.get_driver()
