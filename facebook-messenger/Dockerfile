@@ -11,7 +11,9 @@ RUN apt-get update && apt-get install -y \
 RUN wget -O /tmp/chrome-linux64.zip \
     "https://storage.googleapis.com/chrome-for-testing-public/141.0.7390.54/linux64/chrome-linux64.zip" && \
     unzip /tmp/chrome-linux64.zip -d /opt/ && \
+    chmod +x /opt/chrome-linux64/chrome && \
     ln -sf /opt/chrome-linux64/chrome /usr/bin/google-chrome-stable && \
+    ln -sf /opt/chrome-linux64/chrome /usr/bin/google-chrome && \
     rm /tmp/chrome-linux64.zip
 
 # Install ChromeDriver 141.0.7390.54

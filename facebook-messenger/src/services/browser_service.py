@@ -149,7 +149,7 @@ class BrowserService:
         options.add_experimental_option('useAutomationExtension', False)
         
         # Chrome binary
-        options.binary_location = "/usr/bin/google-chrome-stable"
+        options.binary_location = "/opt/chrome-linux64/chrome"
         
         return options
     
