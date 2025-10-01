@@ -12,7 +12,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import NoSuchElementException
 
 from core.config_service import ConfigService
-from services.browser_service import BrowserService
+from .browser_service import BrowserService
 
 
 class SimpleCaptchaService:
