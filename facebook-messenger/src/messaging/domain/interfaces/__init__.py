@@ -9,6 +9,5 @@ from .template_interface import ITemplateService
 
 __all__ = [
     'INavigationService',
-    'IMessageService', 
-    'ITemplateService'
+    'IMessageService'
 ]
