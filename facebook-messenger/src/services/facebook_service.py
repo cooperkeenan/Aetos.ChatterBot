@@ -15,7 +15,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 from core.config_service import ConfigService
-from services.browser_service import BrowserService
+from .browser_service import BrowserService
 from services.session_service import SessionService
 from services.captcha_service import SimpleCaptchaService
 

@@ -11,7 +11,7 @@ import time
 from typing import List, Dict, Optional, Any
 from pathlib import Path
 
-from core.config_service import ConfigService
+from ..core.config_service import ConfigService
 
 
 class SessionService:
