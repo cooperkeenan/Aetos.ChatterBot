@@ -53,7 +53,7 @@ class BrowserService:
         try:
             # Test Chrome
             result = subprocess.run([
-                "/usr/bin/google-chrome-stable", "--version"
+                "/opt/chrome-linux64/chrome", "--version"
             ], capture_output=True, text=True, timeout=10)
             
             if result.returncode == 0:
