@@ -15,9 +15,9 @@ RUN apt-get remove -y google-chrome-stable || true && \
     rm /tmp/google-chrome.deb && \
     apt-mark hold google-chrome-stable
 
-    
+
 # Install ChromeDriver (matching scraper version)
-RUN CHROMEDRIVER_VERSION="137.0.7151.103" && \
+RUN CHROMEDRIVER_VERSION="141.0.7390.54" && \
     wget -O /tmp/chromedriver.zip \
     "https://storage.googleapis.com/chrome-for-testing-public/$CHROMEDRIVER_VERSION/linux64/chromedriver-linux64.zip" && \
     unzip /tmp/chromedriver.zip -d /tmp && \
