@@ -14,11 +14,10 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
-from core.config_service import ConfigService
+from ..core.config_service import ConfigService
 from .browser_service import BrowserService
-from services.session_service import SessionService
-from services.captcha_service import SimpleCaptchaService
-
+from .session_service import SessionService
+from .captcha_service import SimpleCaptchaService
 
 class FacebookService:
     """
