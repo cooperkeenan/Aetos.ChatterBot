@@ -7,16 +7,14 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Chrome
-RUN apt-get remove -y google-chrome-stable || true && \
-    wget -qO /tmp/google-chrome.deb \
-    "https://mirror.cs.uchicago.edu/google-chrome/pool/main/g/google-chrome-stable/google-chrome-stable_137.0.6957.99-1_amd64.deb" && \
-    dpkg -i /tmp/google-chrome.deb || apt-get update && apt-get -f install -y && \
-    rm /tmp/google-chrome.deb && \
-    apt-mark hold google-chrome-stable
+# Install Chrome for Testing 141.0.7390.54
+RUN wget -O /tmp/chrome-linux64.zip \
+    "https://storage.googleapis.com/chrome-for-testing-public/141.0.7390.54/linux64/chrome-linux64.zip" && \
+    unzip /tmp/chrome-linux64.zip -d /opt/ && \
+    ln -sf /opt/chrome-linux64/chrome /usr/bin/google-chrome-stable && \
+    rm /tmp/chrome-linux64.zip
 
-
-# Install ChromeDriver (matching scraper version)
+# Install ChromeDriver 141.0.7390.54
 RUN CHROMEDRIVER_VERSION="141.0.7390.54" && \
     wget -O /tmp/chromedriver.zip \
     "https://storage.googleapis.com/chrome-for-testing-public/$CHROMEDRIVER_VERSION/linux64/chromedriver-linux64.zip" && \
