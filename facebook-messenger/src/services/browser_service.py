@@ -218,7 +218,7 @@ class BrowserService:
         try:
             import datetime
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"/tmp/{name}_{timestamp}.png"
+            filename = f"/app/logs/{name}_{timestamp}.png"  # Changed from /tmp
             self.driver.save_screenshot(filename)
             print(f"[Browser] Screenshot: {filename}")
             return filename
