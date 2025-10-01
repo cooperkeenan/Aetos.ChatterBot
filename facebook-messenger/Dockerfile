@@ -4,7 +4,7 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y \
     wget gnupg2 ca-certificates fonts-liberation \
     libnss3 libxss1 libasound2 unzip xvfb \
-    curl \
+    curl procps \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Chrome for Testing 141.0.7390.54
