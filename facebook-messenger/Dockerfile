@@ -12,6 +12,7 @@ RUN wget -qO /tmp/google-chrome.deb \
     https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
     dpkg -i /tmp/google-chrome.deb || apt-get update && apt-get -f install -y && \
     rm /tmp/google-chrome.deb
+    apt-mark hold google-chrome-stable
 
 # Install ChromeDriver (matching scraper version)
 RUN CHROMEDRIVER_VERSION="137.0.7151.103" && \
