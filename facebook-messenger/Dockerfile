@@ -8,11 +8,14 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Chrome
-RUN wget -qO /tmp/google-chrome.deb \
-    https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+RUN apt-get remove -y google-chrome-stable || true && \
+    wget -qO /tmp/google-chrome.deb \
+    "https://mirror.cs.uchicago.edu/google-chrome/pool/main/g/google-chrome-stable/google-chrome-stable_137.0.6957.99-1_amd64.deb" && \
     dpkg -i /tmp/google-chrome.deb || apt-get update && apt-get -f install -y && \
-    rm /tmp/google-chrome.deb
+    rm /tmp/google-chrome.deb && \
+    apt-mark hold google-chrome-stable
 
+    
 # Install ChromeDriver (matching scraper version)
 RUN CHROMEDRIVER_VERSION="137.0.7151.103" && \
     wget -O /tmp/chromedriver.zip \
