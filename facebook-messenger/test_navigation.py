@@ -10,6 +10,7 @@ from src.services.proxy_service import ProxyService
 from src.services.facebook_service import FacebookService
 from src.services.session_service import SessionService
 from src.messaging.services.navigation_service import NavigationService
+from src.services.captcha_service import SimpleCaptchaService
 
 # Load environment variables
 load_dotenv()
@@ -42,7 +43,8 @@ def test_navigation():
         
         browser = BrowserService(config, proxy_service)
         session = SessionService(config)
-        facebook = FacebookService(config, browser, session)
+        captcha = SimpleCaptchaService(config, browser)
+        facebook = FacebookService(config, browser, session, captcha)
         navigation = NavigationService(browser, facebook)
         
         with browser:
