@@ -11,7 +11,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import NoSuchElementException
 
-from core.config_service import ConfigService
+from ..core.config_service import ConfigService
 from .browser_service import BrowserService
 
 
