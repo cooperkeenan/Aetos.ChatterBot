@@ -1,63 +1,72 @@
-version: '3.8'
-
 services:
-  # Chatterbot API - receives leads
+  # API Server - receives leads from scraper
   chatterbot-api:
-    build: ./facebook-messenger
+    build: .
     container_name: chatterbot-api
     restart: unless-stopped
+    env_file: .env
     environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
       - DATABASE_URL=${DATABASE_URL}
-      - API_AUTH_ENABLED=false  # Disabled on private network
+      - API_AUTH_ENABLED=false
     ports:
       - "5000:5000"
-    command: gunicorn -w 2 -b 0.0.0.0:5000 src.api.server:app
+    command: gunicorn -w 2 -b 0.0.0.0:5000 --access-logfile - src.api.server:app
     networks:
-      - aetos
+      - aetos-network
 
-  # Chatterbot Worker - sends messages (TODO: implement)
-  chatterbot-worker:
-    build: ./facebook-messenger
-    container_name: chatterbot-worker
-    restart: unless-stopped
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-    volumes:
-      - messenger-cookies:/app/cookies
-      - messenger-logs:/app/logs
-    command: python src/main.py
-    networks:
-      - aetos
-    depends_on:
-      - chatterbot-api
-
-  # Scraper - finds cameras, sends to chatterbot
-  scraper:
+  # Original messenger service (for later when you implement the worker)
+  facebook-messenger:
     build: .
-    container_name: scraper
+    container_name: facebook-messenger
     restart: unless-stopped
+    env_file: .env
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - CHATTERBOT_ENABLED=true
-      - CHATTERBOT_URL=http://chatterbot-api:5000
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
     volumes:
-      - scraper-cookies:/app/cookies
-      - scraper-logs:/app/logs
+      - cookies:/app/cookies
+      - logs:/app/logs
+      - ./config:/app/config:ro
     command: python src/main.py
+    profiles:
+      - worker
     networks:
-      - aetos
+      - aetos-network
+    
+  # Test mode - run navigation test
+  messenger-test:
+    build: .
+    container_name: facebook-messenger-test
+    env_file: .env
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - test-cookies:/app/cookies
+      - logs:/app/logs
+      - ./config:/app/config:ro
+    profiles:
+      - test
+    command: python test_navigation.py
+    networks:
+      - aetos-network
 
 volumes:
-  scraper-cookies:
-  scraper-logs:
-  messenger-cookies:
-  messenger-logs:
+  cookies:
+    name: facebook-messenger-cookies
+  test-cookies:
+    name: facebook-messenger-test-cookies
+  logs:
+    name: facebook-messenger-logs
 
 networks:
-  aetos:
-    driver: bridge
+  aetos-network:
+    external: true
 
-# Azure VM Deployment:
-# 1. Set DATABASE_URL in .env
-# 2. Run: docker-compose up -d
-# 3. Containers communicate on private network (no auth needed)
+# Usage:
+# Start API only:       docker-compose up -d chatterbot-api
+# Start worker later:   docker-compose up -d facebook-messenger
+# Test:                 docker-compose --profile test up messenger-test
+# Stop API:             docker-compose down chatterbot-api
