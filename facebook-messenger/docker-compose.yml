@@ -1,44 +1,63 @@
 version: '3.8'
 
 services:
-  facebook-messenger:
-    build: .
-    container_name: facebook-messenger
+  # Chatterbot API - receives leads
+  chatterbot-api:
+    build: ./facebook-messenger
+    container_name: chatterbot-api
     restart: unless-stopped
-    env_file: .env
     environment:
-      - PYTHONPATH=/app
-      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=${DATABASE_URL}
+      - API_AUTH_ENABLED=false  # Disabled on private network
+    ports:
+      - "5000:5000"
+    command: gunicorn -w 2 -b 0.0.0.0:5000 src.api.server:app
+    networks:
+      - aetos
+
+  # Chatterbot Worker - sends messages (TODO: implement)
+  chatterbot-worker:
+    build: ./facebook-messenger
+    container_name: chatterbot-worker
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
     volumes:
-      - cookies:/app/cookies        # Persistent cookies
-      - logs:/app/logs             # Logs and screenshots
-      - ./config:/app/config:ro    # Config file (read-only)
+      - messenger-cookies:/app/cookies
+      - messenger-logs:/app/logs
     command: python src/main.py
-    
-  # Test mode - run navigation test
-  messenger-test:
+    networks:
+      - aetos
+    depends_on:
+      - chatterbot-api
+
+  # Scraper - finds cameras, sends to chatterbot
+  scraper:
     build: .
-    container_name: facebook-messenger-test
-    env_file: .env
+    container_name: scraper
+    restart: unless-stopped
     environment:
-      - PYTHONPATH=/app
-      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=${DATABASE_URL}
+      - CHATTERBOT_ENABLED=true
+      - CHATTERBOT_URL=http://chatterbot-api:5000
     volumes:
-      - test-cookies:/app/cookies
-      - logs:/app/logs
-      - ./config:/app/config:ro
-    profiles:
-      - test
-    command: python test_navigation.py
+      - scraper-cookies:/app/cookies
+      - scraper-logs:/app/logs
+    command: python src/main.py
+    networks:
+      - aetos
 
 volumes:
-  cookies:
-    name: facebook-messenger-cookies
-  test-cookies:
-    name: facebook-messenger-test-cookies
-  logs:
-    name: facebook-messenger-logs
+  scraper-cookies:
+  scraper-logs:
+  messenger-cookies:
+  messenger-logs:
 
-# Usage:
-# Production:  docker-compose up facebook-messenger
-# Test:        docker-compose --profile test up messenger-test
+networks:
+  aetos:
+    driver: bridge
+
+# Azure VM Deployment:
+# 1. Set DATABASE_URL in .env
+# 2. Run: docker-compose up -d
+# 3. Containers communicate on private network (no auth needed)
