@@ -35,6 +35,9 @@ class FacebookService:
         self.driver = None
     
     def login(self) -> bool:
+        print(f"[Facebook] Captcha service: {'enabled' if self.captcha else 'disabled'}")
+        if self.captcha:
+            print(f"[Facebook] API key configured: {bool(self.captcha.api_key)}")
         
         self.driver = self.browser.get_driver()
         handler = LoginHandler(self.driver, self.config)
@@ -69,11 +72,24 @@ class FacebookService:
             if not self._submit_login():
                 print("[Facebook] Failed to submit login")
                 return False
+
             self._human_delay(3, 5)
 
             print(f"[Debug] Current URL: {self.driver.current_url}")
             print(f"[Debug] Taking screenshot...")
             self.browser.take_screenshot("login_attempt")
+
+            # Check for captcha AFTER login submission (this is when it appears)
+            print("[Facebook] Checking for post-login captcha...")
+            if self.captcha:
+                for attempt in range(3):  # Try 3 times
+                    if self.captcha.check_and_solve():
+                        print("[Facebook] Captcha handled")
+                        self._human_delay(2, 3)
+                        break
+                    else:
+                        print(f"[Facebook] Captcha attempt {attempt + 1} failed")
+                        self._human_delay(2, 3)
 
         
         # Check for security code after login attempt
