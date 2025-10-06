@@ -18,6 +18,7 @@ from ..core.config_service import ConfigService
 from .browser_service import BrowserService
 from .session_service import SessionService
 from .captcha_service import SimpleCaptchaService
+from .login_handler import LoginHandler
 
 class FacebookService:
     """
@@ -34,95 +35,54 @@ class FacebookService:
         self.driver = None
     
     def login(self) -> bool:
-        """
-        Perform Facebook login and set location
-        Returns True if successful
-        """
-        if not self.config.facebook.username or not self.config.facebook.password:
-            print("[Facebook] Missing credentials")
-            return False
         
-        print(f"[Facebook] Logging in as {self.config.facebook.username}")
-        
-        # Get driver
         self.driver = self.browser.get_driver()
-        wait = self.browser.wait()
+        handler = LoginHandler(self.driver, self.config)
         
-        try:
-            # Navigate to login page
-            print("[Facebook] Navigating to login page...")
-            self.driver.get(self.config.facebook.login_url)
-            self._human_delay(2, 4)
-            
-            # Check for captcha before login
-            if self.captcha:
-                self.captcha.check_and_solve()
-            
-            # Find and fill email field
-            email_input = self._find_email_input(wait)
+        print("[Facebook] Navigating to login page...")
+        self.driver.get(self.config.facebook.login_url)
+        
+        # Detect page state
+        state = handler.handle_login_page()
+        
+        if state == 'captcha':
+            print("[Facebook] Captcha detected, please solve manually or wait...")
+            time.sleep(30)  # Give time to solve
+            state = handler.handle_login_page()
+        
+        if state == 'login_fields':
+            # Proceed with normal login
+            email_input = self._find_email_input(self.browser.wait())
             if not email_input:
-                print("[Facebook] Could not find email input")
-                self.browser.take_screenshot("login_no_email_field")
                 return False
             
             self._type_slowly(email_input, self.config.facebook.username)
             self._human_delay()
             
-            # Find and fill password field
             password_input = self._find_password_input()
             if not password_input:
-                print("[Facebook] Could not find password input")
                 return False
-                
+            
             self._type_slowly(password_input, self.config.facebook.password)
             self._human_delay()
             
-            # Check for captcha before submitting
-            if self.captcha:
-                self.captcha.check_and_solve()
-            
-            # Submit login
-            if not self._submit_login():
-                print("[Facebook] Failed to submit login")
-                return False
-            
+            self._submit_login()
             self._human_delay(3, 5)
-            
-            # Check for captcha after login
-            if self.captcha:
-                self.captcha.check_and_solve()
-            
-            # Handle 2FA if needed
-            self._handle_2fa(wait)
-            
-            # Check if login successful
-            if self._is_logged_in(wait):
-                print("[Facebook] ✅ Login successful!")
-                
-                # Check and fix location
-                print("[Facebook] 🌍 Checking location settings...")
-                location_fixed = self.check_and_fix_location()
-                
-                if location_fixed:
-                    print("[Facebook] ✅ Location set to UK")
-                else:
-                    print("[Facebook] ⚠️ Could not verify UK location - marketplace may show US results")
-                
-                # Save cookies
-                cookies = self.driver.get_cookies()
-                self.session.save_cookies(cookies)
-                
-                self.browser.take_screenshot("login_success")
-                return True
-            else:
-                print("[Facebook] ❌ Login failed")
-                self.browser.take_screenshot("login_failed")
+        
+        # Check for security code after login attempt
+        if handler._has_security_code():
+            if not handler.wait_for_security_code():
                 return False
-                
-        except Exception as e:
-            print(f"[Facebook] Login error: {e}")
-            self.browser.take_screenshot("login_error")
-            return False
+        
+        # Verify login success
+        if self._is_logged_in(self.browser.wait()):
+            print("[Facebook] Login successful!")
+            self.browser.take_screenshot("login_success")
+            cookies = self.driver.get_cookies()
+            self.session.save_cookies(cookies)
+            return True
+        
+        return False
     
     def check_and_fix_location(self) -> bool:
         """Check if Facebook location is set to UK and fix if needed"""
