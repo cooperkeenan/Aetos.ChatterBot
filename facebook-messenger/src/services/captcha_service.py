@@ -1,14 +1,12 @@
 # src/services/captcha_service.py
 """
-Simplified captcha service - Handles basic reCAPTCHA checkboxes
-Follows Single Responsibility Principle
+Captcha service with 2Captcha API integration
 """
 
 import time
-import random
+import requests
 from typing import Optional
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import NoSuchElementException
 
 from ..core.config_service import ConfigService
@@ -16,187 +14,172 @@ from .browser_service import BrowserService
 
 
 class SimpleCaptchaService:
-    """
-    Handles simple reCAPTCHA checkbox interactions
-    Single Responsibility: Basic captcha detection and clicking
-    """
+    """Handles reCAPTCHA using 2Captcha service"""
     
     def __init__(self, config: ConfigService, browser: BrowserService):
         self.config = config
         self.browser = browser
         self.enabled = config.captcha.enabled
+        self.api_key = config.captcha.api_key
+        self.base_url = "http://2captcha.com"
     
     def check_and_solve(self) -> bool:
-        """
-        Check for captcha and attempt to solve
-        Returns True if solved or no captcha found
-        """
-        if not self.enabled:
+        """Check for captcha and solve using 2Captcha API"""
+        if not self.enabled or not self.api_key:
             return True
         
         driver = self.browser.get_driver()
         
-        # Check if captcha present
         if not self._is_captcha_present(driver):
             return True
         
-        print("[Captcha] Detected reCAPTCHA")
+        print("[Captcha] Detected reCAPTCHA, sending to 2Captcha...")
         self.browser.take_screenshot("captcha_detected")
         
-        # Try to click checkbox
-        if self._click_checkbox(driver):
-            time.sleep(3)  # Wait for verification
-            
-            # Check if solved
-            if self._is_solved(driver):
-                print("[Captcha] ✅ Successfully solved")
-                return True
-            else:
-                print("[Captcha] ⚠️ May require manual intervention")
-                return False
-        else:
-            print("[Captcha] ❌ Could not find checkbox")
+        # Get site key
+        site_key = self._get_site_key(driver)
+        if not site_key:
+            print("[Captcha] Could not find site key")
             return False
+        
+        # Get page URL
+        page_url = driver.current_url
+        
+        # Solve with 2Captcha
+        token = self._solve_with_2captcha(page_url, site_key)
+        if not token:
+            return False
+        
+        # Inject token
+        if self._inject_token(driver, token):
+            print("[Captcha] Successfully solved")
+            return True
+        
+        return False
     
     def _is_captcha_present(self, driver) -> bool:
-        """Check if reCAPTCHA is present on page"""
+        """Check if reCAPTCHA is present"""
         try:
-            # Check page source
             page_source = driver.page_source.lower()
-            indicators = ["recaptcha", "i'm not a robot", "g-recaptcha"]
-            
-            if any(indicator in page_source for indicator in indicators):
-                return True
-            
-            # Check for reCAPTCHA iframes
-            iframes = driver.find_elements(By.CSS_SELECTOR, "iframe[src*='recaptcha']")
-            if iframes:
-                return True
-                
-        except Exception:
-            pass
-        
-        return False
+            return "recaptcha" in page_source or "g-recaptcha" in page_source
+        except:
+            return False
     
-    def _click_checkbox(self, driver) -> bool:
-        """Find and click the reCAPTCHA checkbox"""
-        # Try main page first
-        if self._try_click_main_page(driver):
-            return True
-        
-        # Try iframes
-        if self._try_click_in_iframe(driver):
-            return True
-        
-        return False
-    
-    def _try_click_main_page(self, driver) -> bool:
-        """Try to click checkbox in main page"""
-        selectors = [
-            ".recaptcha-checkbox-border",
-            ".recaptcha-checkbox",
-            "#recaptcha-anchor",
-            "div[role='checkbox']",
-            "span[role='checkbox']"
-        ]
-        
-        for selector in selectors:
-            try:
-                elements = driver.find_elements(By.CSS_SELECTOR, selector)
-                for element in elements:
-                    if element.is_displayed() and element.is_enabled():
-                        self._human_click(driver, element)
-                        return True
-            except Exception:
-                continue
-        
-        return False
-    
-    def _try_click_in_iframe(self, driver) -> bool:
-        """Try to click checkbox inside iframe"""
-        original_frame = None
-        
+    def _get_site_key(self, driver) -> Optional[str]:
+        """Extract reCAPTCHA site key from page"""
         try:
-            iframes = driver.find_elements(By.TAG_NAME, "iframe")
+            # Try different methods to find site key
             
+            # Method 1: data-sitekey attribute
+            elements = driver.find_elements(By.CSS_SELECTOR, "[data-sitekey]")
+            for elem in elements:
+                key = elem.get_attribute("data-sitekey")
+                if key:
+                    return key
+            
+            # Method 2: iframe src
+            iframes = driver.find_elements(By.CSS_SELECTOR, "iframe[src*='recaptcha']")
             for iframe in iframes:
-                src = iframe.get_attribute("src") or ""
-                if "recaptcha" in src.lower():
-                    try:
-                        driver.switch_to.frame(iframe)
-                        
-                        if self._try_click_main_page(driver):
-                            return True
-                        
-                    finally:
-                        driver.switch_to.default_content()
-                        
-        except Exception as e:
-            print(f"[Captcha] Error checking iframes: {e}")
+                src = iframe.get_attribute("src")
+                if "k=" in src:
+                    key = src.split("k=")[1].split("&")[0]
+                    if key:
+                        return key
             
-        finally:
-            # Ensure we're back in default content
+            # Method 3: Page source search
+            import re
+            page_source = driver.page_source
+            match = re.search(r'data-sitekey="([^"]+)"', page_source)
+            if match:
+                return match.group(1)
+            
+        except Exception as e:
+            print(f"[Captcha] Error getting site key: {e}")
+        
+        return None
+    
+    def _solve_with_2captcha(self, page_url: str, site_key: str) -> Optional[str]:
+        """Send captcha to 2Captcha and get solution"""
+        try:
+            # Submit captcha
+            submit_url = f"{self.base_url}/in.php"
+            params = {
+                "key": self.api_key,
+                "method": "userrecaptcha",
+                "googlekey": site_key,
+                "pageurl": page_url,
+                "json": 1
+            }
+            
+            print(f"[Captcha] Submitting to 2Captcha...")
+            response = requests.get(submit_url, params=params, timeout=30)
+            result = response.json()
+            
+            if result.get("status") != 1:
+                print(f"[Captcha] 2Captcha error: {result.get('request')}")
+                return None
+            
+            captcha_id = result.get("request")
+            print(f"[Captcha] Captcha ID: {captcha_id}, waiting for solution...")
+            
+            # Poll for result
+            result_url = f"{self.base_url}/res.php"
+            max_attempts = self.config.captcha.solve_timeout // 5
+            
+            for attempt in range(max_attempts):
+                time.sleep(5)
+                
+                params = {
+                    "key": self.api_key,
+                    "action": "get",
+                    "id": captcha_id,
+                    "json": 1
+                }
+                
+                response = requests.get(result_url, params=params, timeout=30)
+                result = response.json()
+                
+                if result.get("status") == 1:
+                    token = result.get("request")
+                    print(f"[Captcha] Solved in {(attempt + 1) * 5} seconds")
+                    return token
+                
+                if result.get("request") != "CAPCHA_NOT_READY":
+                    print(f"[Captcha] Error: {result.get('request')}")
+                    return None
+            
+            print("[Captcha] Timeout waiting for solution")
+            return None
+            
+        except Exception as e:
+            print(f"[Captcha] 2Captcha API error: {e}")
+            return None
+    
+    def _inject_token(self, driver, token: str) -> bool:
+        """Inject solved captcha token into page"""
+        try:
+            # Find textarea and inject token
+            script = f"""
+                var textarea = document.querySelector('[name="g-recaptcha-response"]');
+                if (textarea) {{
+                    textarea.innerHTML = '{token}';
+                    textarea.value = '{token}';
+                }}
+            """
+            driver.execute_script(script)
+            
+            # Trigger callback if exists
+            callback_script = """
+                var callback = ___grecaptcha_cfg.clients[0].callback;
+                if (callback) callback();
+            """
             try:
-                driver.switch_to.default_content()
+                driver.execute_script(callback_script)
             except:
                 pass
-        
-        return False
-    
-    def _human_click(self, driver, element):
-        """Click element with human-like behavior"""
-        try:
-            # Scroll into view
-            driver.execute_script("arguments[0].scrollIntoView(true);", element)
-            time.sleep(random.uniform(0.5, 1.0))
             
-            # Use ActionChains for realistic movement
-            actions = ActionChains(driver)
-            
-            # Add small random offset
-            x_offset = random.randint(-2, 2)
-            y_offset = random.randint(-2, 2)
-            
-            actions.move_to_element_with_offset(element, x_offset, y_offset)
-            time.sleep(random.uniform(0.1, 0.3))
-            actions.click()
-            actions.perform()
-            
-            print("[Captcha] Clicked checkbox")
+            return True
             
         except Exception as e:
-            # Fallback to simple click
-            try:
-                element.click()
-                print("[Captcha] Clicked checkbox (simple)")
-            except:
-                raise
-    
-    def _is_solved(self, driver) -> bool:
-        """Check if captcha was solved"""
-        # Check if we got redirected
-        current_url = driver.current_url.lower()
-        if "facebook.com/home" in current_url or "facebook.com/?" in current_url:
-            return True
-        
-        # Check if captcha indicators are gone
-        try:
-            page_source = driver.page_source.lower()
-            if "i'm not a robot" not in page_source:
-                return True
-        except:
-            pass
-        
-        # Check for image challenges (means simple click wasn't enough)
-        challenge_indicators = [
-            ".rc-imageselect",
-            "select all images",
-            "click verify"
-        ]
-        
-        page_source = driver.page_source.lower()
-        if any(indicator in page_source for indicator in challenge_indicators):
-            print("[Captcha] Complex challenge detected - manual intervention needed")
+            print(f"[Captcha] Error injecting token: {e}")
             return False
-        
-        return False

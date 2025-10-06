@@ -16,6 +16,11 @@ proxy:
   sticky_sessions: true
   connection_timeout: 15
 
+captcha:
+  enabled: true
+  provider: "2captcha"  
+  solve_timeout: 300
+
 # Facebook Configuration
 facebook:
   login_url: "https://www.facebook.com/login"
