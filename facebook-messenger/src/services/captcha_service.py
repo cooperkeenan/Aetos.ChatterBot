@@ -58,11 +58,43 @@ class SimpleCaptchaService:
         return False
     
     def _is_captcha_present(self, driver) -> bool:
-        """Check if reCAPTCHA is present"""
+        """Check if reCAPTCHA is actually present (not just mentioned in code)"""
+        indicators = 0
+        
         try:
+            # Visual check: iframe visible
+            iframes = driver.find_elements(By.CSS_SELECTOR, "iframe[src*='recaptcha']")
+            visible_iframes = [i for i in iframes if i.is_displayed()]
+            if visible_iframes:
+                print(f"[Captcha] Found {len(visible_iframes)} visible recaptcha iframes")
+                indicators += 2
+            
+            # Visual check: captcha container visible
+            containers = driver.find_elements(By.CSS_SELECTOR, ".g-recaptcha, [data-sitekey]")
+            visible_containers = [c for c in containers if c.is_displayed()]
+            if visible_containers:
+                print(f"[Captcha] Found {len(visible_containers)} visible captcha containers")
+                indicators += 2
+            
+            # Text check: "I'm not a robot" visible on page
+            page_text = driver.find_element(By.TAG_NAME, "body").text.lower()
+            if "i'm not a robot" in page_text or "verify you are human" in page_text:
+                print("[Captcha] Found captcha text on page")
+                indicators += 1
+            
+            # Code check: recaptcha scripts loaded
             page_source = driver.page_source.lower()
-            return "recaptcha" in page_source or "g-recaptcha" in page_source
-        except:
+            if "recaptcha/api.js" in page_source or "recaptcha/enterprise.js" in page_source:
+                print("[Captcha] Found recaptcha scripts")
+                indicators += 1
+            
+            print(f"[Captcha] Detection score: {indicators}/6 (need ≥3 to confirm)")
+            
+            # Need at least 3 indicators to confirm captcha
+            return indicators >= 3
+            
+        except Exception as e:
+            print(f"[Captcha] Detection error: {e}")
             return False
     
     def _get_site_key(self, driver) -> Optional[str]:
