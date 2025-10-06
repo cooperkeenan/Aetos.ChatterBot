@@ -66,8 +66,15 @@ class FacebookService:
             self._type_slowly(password_input, self.config.facebook.password)
             self._human_delay()
             
-            self._submit_login()
+            if not self._submit_login():
+                print("[Facebook] Failed to submit login")
+                return False
             self._human_delay(3, 5)
+
+            print(f"[Debug] Current URL: {self.driver.current_url}")
+            print(f"[Debug] Taking screenshot...")
+            self.browser.take_screenshot("login_attempt")
+
         
         # Check for security code after login attempt
         if handler._has_security_code():
