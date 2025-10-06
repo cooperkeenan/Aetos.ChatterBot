@@ -1,10 +1,10 @@
 from dotenv import load_dotenv
-from core.config_service import get_config
-from services.browser_service import BrowserService
-from services.proxy_service import ProxyService
-from services.facebook_service import FacebookService
-from services.session_service import SessionService
-from messaging.services.navigation_service import NavigationService
+from src.core.config_service import get_config
+from src.services.browser_service import BrowserService
+from src.services.proxy_service import ProxyService
+from src.services.facebook_service import FacebookService
+from src.services.session_service import SessionService
+from src.messaging.services.navigation_service import NavigationService
 
 load_dotenv()
 
