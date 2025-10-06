@@ -67,31 +67,53 @@ class SimpleCaptchaService:
     
     def _get_site_key(self, driver) -> Optional[str]:
         """Extract reCAPTCHA site key from page"""
+        print("[Captcha] Searching for site key...")
+        
         try:
-            # Try different methods to find site key
-            
             # Method 1: data-sitekey attribute
             elements = driver.find_elements(By.CSS_SELECTOR, "[data-sitekey]")
+            print(f"[Captcha] Found {len(elements)} elements with data-sitekey")
             for elem in elements:
                 key = elem.get_attribute("data-sitekey")
                 if key:
+                    print(f"[Captcha] Found site key via attribute: {key[:20]}...")
                     return key
             
             # Method 2: iframe src
             iframes = driver.find_elements(By.CSS_SELECTOR, "iframe[src*='recaptcha']")
+            print(f"[Captcha] Found {len(iframes)} recaptcha iframes")
             for iframe in iframes:
                 src = iframe.get_attribute("src")
+                print(f"[Captcha] iframe src: {src[:100]}...")
                 if "k=" in src:
                     key = src.split("k=")[1].split("&")[0]
                     if key:
+                        print(f"[Captcha] Found site key via iframe: {key[:20]}...")
                         return key
             
-            # Method 3: Page source search
+            # Method 3: Page source regex
             import re
             page_source = driver.page_source
-            match = re.search(r'data-sitekey="([^"]+)"', page_source)
-            if match:
-                return match.group(1)
+            
+            # Try multiple patterns
+            patterns = [
+                r'data-sitekey="([^"]+)"',
+                r'"sitekey":"([^"]+)"',
+                r'[?&]k=([^&"\']+)'
+            ]
+            
+            for pattern in patterns:
+                match = re.search(pattern, page_source)
+                if match:
+                    key = match.group(1)
+                    print(f"[Captcha] Found site key via regex: {key[:20]}...")
+                    return key
+            
+            print("[Captcha] No site key found via any method")
+            # Save page source for debugging
+            with open("/app/logs/captcha_page_source.html", "w") as f:
+                f.write(page_source)
+            print("[Captcha] Saved page source to logs/captcha_page_source.html")
             
         except Exception as e:
             print(f"[Captcha] Error getting site key: {e}")
